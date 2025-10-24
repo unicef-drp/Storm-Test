@@ -934,4 +934,6 @@ def update_pressure_chart(stored_data):
 
 
 if __name__ == '__main__':
-    app.run(debug=False, host='0.0.0.0', port=10000)
+    # Azure App Service will set the PORT environment variable
+    port = int(os.environ.get('PORT', 10000))
+    app.run(debug=False, host='0.0.0.0', port=port)
