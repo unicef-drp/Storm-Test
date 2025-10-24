@@ -57,20 +57,6 @@ jobs:
         with:
           name: python-app
       
-      - name: 'Prepare for Deployment'
-        uses: azure/CLI@v1
-        with:
-          azcliversion: '2.0.72'
-          inlineScript: |
-            # Get resource group
-            RESOURCE_GROUP=$(az webapp show --name stormtest --query "resourceGroup" -o tsv)
-            
-            # Temporarily disable WEBSITE_RUN_FROM_PACKAGE to avoid 409 conflicts
-            az webapp config appsettings set --name stormtest --resource-group $RESOURCE_GROUP --settings WEBSITE_RUN_FROM_PACKAGE=0
-            
-            # Restart the app service
-            az webapp restart --name stormtest --resource-group $RESOURCE_GROUP
-
       - name: 'Deploy to Azure Web App'
         uses: azure/webapps-deploy@v3
         id: deploy-to-webapp
@@ -78,34 +64,3 @@ jobs:
           app-name: 'stormtest'
           slot-name: 'Production'
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_32DCDB442CA643F39D4BC612A37C9122 }}
-
-      - name: 'Set Environment Variables from GitHub Secrets'
-        uses: azure/CLI@v1
-        with:
-          azcliversion: '2.0.72'
-          inlineScript: |
-            # Get resource group
-            RESOURCE_GROUP=$(az webapp show --name stormtest --query "resourceGroup" -o tsv)
-            
-            # Set environment variables
-            az webapp config appsettings set --name stormtest --resource-group $RESOURCE_GROUP --settings \
-              SNOWFLAKE_ACCOUNT="${{ secrets.SNOWFLAKE_ACCOUNT }}" \
-              SNOWFLAKE_USER="${{ secrets.SNOWFLAKE_USER }}" \
-              SNOWFLAKE_PASSWORD="${{ secrets.SNOWFLAKE_PASSWORD }}" \
-              SNOWFLAKE_WAREHOUSE="${{ secrets.SNOWFLAKE_WAREHOUSE }}" \
-              SNOWFLAKE_DATABASE="${{ secrets.SNOWFLAKE_DATABASE }}" \
-              SNOWFLAKE_SCHEMA="${{ secrets.SNOWFLAKE_SCHEMA }}"
-
-      - name: 'Finalize Deployment'
-        uses: azure/CLI@v1
-        with:
-          azcliversion: '2.0.72'
-          inlineScript: |
-            # Get resource group
-            RESOURCE_GROUP=$(az webapp show --name stormtest --query "resourceGroup" -o tsv)
-            
-            # Re-enable WEBSITE_RUN_FROM_PACKAGE for better performance
-            az webapp config appsettings set --name stormtest --resource-group $RESOURCE_GROUP --settings WEBSITE_RUN_FROM_PACKAGE=1
-            
-            # Final restart to apply all settings
-            az webapp restart --name stormtest --resource-group $RESOURCE_GROUP
