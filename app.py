@@ -16,99 +16,140 @@ from shapely import wkt
 # Snowflake connection
 def get_snowflake_data():
     """Connect to Snowflake and fetch TC forecast data"""
-    conn = snowflake.connector.connect(
-        account=os.getenv('SNOWFLAKE_ACCOUNT'),
-        user=os.getenv('SNOWFLAKE_USER'),
-        password=os.getenv('SNOWFLAKE_PASSWORD'),
-        warehouse=os.getenv('SNOWFLAKE_WAREHOUSE'),
-        database=os.getenv('SNOWFLAKE_DATABASE'),
-        schema=os.getenv('SNOWFLAKE_SCHEMA')
-    )
+    # Check if Snowflake credentials are available
+    required_vars = ['SNOWFLAKE_ACCOUNT', 'SNOWFLAKE_USER', 'SNOWFLAKE_PASSWORD', 
+                     'SNOWFLAKE_WAREHOUSE', 'SNOWFLAKE_DATABASE', 'SNOWFLAKE_SCHEMA']
+    
+    missing_vars = [var for var in required_vars if not os.getenv(var)]
+    if missing_vars:
+        print(f"Missing Snowflake environment variables: {missing_vars}")
+        # Return empty DataFrame with expected structure
+        return pd.DataFrame(columns=['TRACK_ID', 'FORECAST_TIME', 'ensemble_count', 'max_lead_time'])
+    
+    try:
+        conn = snowflake.connector.connect(
+            account=os.getenv('SNOWFLAKE_ACCOUNT'),
+            user=os.getenv('SNOWFLAKE_USER'),
+            password=os.getenv('SNOWFLAKE_PASSWORD'),
+            warehouse=os.getenv('SNOWFLAKE_WAREHOUSE'),
+            database=os.getenv('SNOWFLAKE_DATABASE'),
+            schema=os.getenv('SNOWFLAKE_SCHEMA')
+        )
 
-    metadata_query = """
-                     SELECT DISTINCT TRACK_ID, \
-                                     FORECAST_TIME, \
-                                     COUNT(DISTINCT ENSEMBLE_MEMBER) as ensemble_count, \
-                                     MAX(LEAD_TIME)                  as max_lead_time
-                     FROM TC_TRACKS
-                     GROUP BY TRACK_ID, FORECAST_TIME
-                     ORDER BY FORECAST_TIME DESC, TRACK_ID \
-                     """
+        metadata_query = """
+                         SELECT DISTINCT TRACK_ID, \
+                                         FORECAST_TIME, \
+                                         COUNT(DISTINCT ENSEMBLE_MEMBER) as ensemble_count, \
+                                         MAX(LEAD_TIME)                  as max_lead_time
+                         FROM TC_TRACKS
+                         GROUP BY TRACK_ID, FORECAST_TIME
+                         ORDER BY FORECAST_TIME DESC, TRACK_ID \
+                         """
 
-    cursor = conn.cursor()
-    cursor.execute(metadata_query)
-    metadata_df = cursor.fetch_pandas_all()
-    cursor.close()
-    conn.close()
+        cursor = conn.cursor()
+        cursor.execute(metadata_query)
+        metadata_df = cursor.fetch_pandas_all()
+        cursor.close()
+        conn.close()
 
-    return metadata_df
+        return metadata_df
+    except Exception as e:
+        print(f"Snowflake connection error: {e}")
+        # Return empty DataFrame with expected structure
+        return pd.DataFrame(columns=['TRACK_ID', 'FORECAST_TIME', 'ensemble_count', 'max_lead_time'])
 
 
 def get_forecast_data(track_id, forecast_time):
     """Get forecast data for a specific storm and forecast time"""
-    conn = snowflake.connector.connect(
-        account=os.getenv('SNOWFLAKE_ACCOUNT'),
-        user=os.getenv('SNOWFLAKE_USER'),
-        password=os.getenv('SNOWFLAKE_PASSWORD'),
-        warehouse=os.getenv('SNOWFLAKE_WAREHOUSE'),
-        database=os.getenv('SNOWFLAKE_DATABASE'),
-        schema=os.getenv('SNOWFLAKE_SCHEMA')
-    )
+    # Check if Snowflake credentials are available
+    required_vars = ['SNOWFLAKE_ACCOUNT', 'SNOWFLAKE_USER', 'SNOWFLAKE_PASSWORD', 
+                     'SNOWFLAKE_WAREHOUSE', 'SNOWFLAKE_DATABASE', 'SNOWFLAKE_SCHEMA']
+    
+    missing_vars = [var for var in required_vars if not os.getenv(var)]
+    if missing_vars:
+        print(f"Missing Snowflake environment variables: {missing_vars}")
+        return pd.DataFrame(columns=['ENSEMBLE_MEMBER', 'LEAD_TIME', 'VALID_TIME', 'LATITUDE', 'LONGITUDE', 'WIND_SPEED_KNOTS', 'PRESSURE_HPA'])
+    
+    try:
+        conn = snowflake.connector.connect(
+            account=os.getenv('SNOWFLAKE_ACCOUNT'),
+            user=os.getenv('SNOWFLAKE_USER'),
+            password=os.getenv('SNOWFLAKE_PASSWORD'),
+            warehouse=os.getenv('SNOWFLAKE_WAREHOUSE'),
+            database=os.getenv('SNOWFLAKE_DATABASE'),
+            schema=os.getenv('SNOWFLAKE_SCHEMA')
+        )
 
-    query = f"""
-    SELECT 
-        ENSEMBLE_MEMBER,
-        LEAD_TIME,
-        VALID_TIME,
-        LATITUDE,
-        LONGITUDE,
-        WIND_SPEED_KNOTS,
-        PRESSURE_HPA
-    FROM TC_TRACKS
-    WHERE TRACK_ID = '{track_id}'
-      AND FORECAST_TIME = '{forecast_time}'
-    ORDER BY ENSEMBLE_MEMBER, LEAD_TIME
-    """
+        query = f"""
+        SELECT 
+            ENSEMBLE_MEMBER,
+            LEAD_TIME,
+            VALID_TIME,
+            LATITUDE,
+            LONGITUDE,
+            WIND_SPEED_KNOTS,
+            PRESSURE_HPA
+        FROM TC_TRACKS
+        WHERE TRACK_ID = '{track_id}'
+          AND FORECAST_TIME = '{forecast_time}'
+        ORDER BY ENSEMBLE_MEMBER, LEAD_TIME
+        """
 
-    cursor = conn.cursor()
-    cursor.execute(query)
-    df = cursor.fetch_pandas_all()
-    cursor.close()
-    conn.close()
+        cursor = conn.cursor()
+        cursor.execute(query)
+        df = cursor.fetch_pandas_all()
+        cursor.close()
+        conn.close()
 
-    return df
+        return df
+    except Exception as e:
+        print(f"Snowflake connection error: {e}")
+        return pd.DataFrame(columns=['ENSEMBLE_MEMBER', 'LEAD_TIME', 'VALID_TIME', 'LATITUDE', 'LONGITUDE', 'WIND_SPEED_KNOTS', 'PRESSURE_HPA'])
 
 
 def get_combined_envelopes(track_id, forecast_time):
     """Get combined wind envelopes for a specific storm and forecast time"""
-    conn = snowflake.connector.connect(
-        account=os.getenv('SNOWFLAKE_ACCOUNT'),
-        user=os.getenv('SNOWFLAKE_USER'),
-        password=os.getenv('SNOWFLAKE_PASSWORD'),
-        warehouse=os.getenv('SNOWFLAKE_WAREHOUSE'),
-        database=os.getenv('SNOWFLAKE_DATABASE'),
-        schema=os.getenv('SNOWFLAKE_SCHEMA')
-    )
+    # Check if Snowflake credentials are available
+    required_vars = ['SNOWFLAKE_ACCOUNT', 'SNOWFLAKE_USER', 'SNOWFLAKE_PASSWORD', 
+                     'SNOWFLAKE_WAREHOUSE', 'SNOWFLAKE_DATABASE', 'SNOWFLAKE_SCHEMA']
+    
+    missing_vars = [var for var in required_vars if not os.getenv(var)]
+    if missing_vars:
+        print(f"Missing Snowflake environment variables: {missing_vars}")
+        return pd.DataFrame(columns=['ENSEMBLE_MEMBER', 'LEAD_TIME_RANGE', 'WIND_THRESHOLD', 'ENVELOPE_REGION'])
+    
+    try:
+        conn = snowflake.connector.connect(
+            account=os.getenv('SNOWFLAKE_ACCOUNT'),
+            user=os.getenv('SNOWFLAKE_USER'),
+            password=os.getenv('SNOWFLAKE_PASSWORD'),
+            warehouse=os.getenv('SNOWFLAKE_WAREHOUSE'),
+            database=os.getenv('SNOWFLAKE_DATABASE'),
+            schema=os.getenv('SNOWFLAKE_SCHEMA')
+        )
 
-    query = f"""
-    SELECT 
-        ENSEMBLE_MEMBER,
-        LEAD_TIME_RANGE,
-        WIND_THRESHOLD,
-        ST_ASWKT(ENVELOPE_REGION) AS ENVELOPE_REGION
-    FROM TC_ENVELOPES_COMBINED
-    WHERE TRACK_ID = '{track_id}'
-      AND FORECAST_TIME = '{forecast_time}'
-    ORDER BY ENSEMBLE_MEMBER, LEAD_TIME_RANGE, WIND_THRESHOLD
-    """
+        query = f"""
+        SELECT 
+            ENSEMBLE_MEMBER,
+            LEAD_TIME_RANGE,
+            WIND_THRESHOLD,
+            ST_ASWKT(ENVELOPE_REGION) AS ENVELOPE_REGION
+        FROM TC_ENVELOPES_COMBINED
+        WHERE TRACK_ID = '{track_id}'
+          AND FORECAST_TIME = '{forecast_time}'
+        ORDER BY ENSEMBLE_MEMBER, LEAD_TIME_RANGE, WIND_THRESHOLD
+        """
 
-    cursor = conn.cursor()
-    cursor.execute(query)
-    df = cursor.fetch_pandas_all()
-    cursor.close()
-    conn.close()
+        cursor = conn.cursor()
+        cursor.execute(query)
+        df = cursor.fetch_pandas_all()
+        cursor.close()
+        conn.close()
 
-    return df
+        return df
+    except Exception as e:
+        print(f"Snowflake connection error: {e}")
+        return pd.DataFrame(columns=['ENSEMBLE_MEMBER', 'LEAD_TIME_RANGE', 'WIND_THRESHOLD', 'ENVELOPE_REGION'])
 
 
 # Initialize Dash app with optimizations
