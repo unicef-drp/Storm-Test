@@ -64,10 +64,23 @@ jobs:
           app-name: 'stormtest'
           slot-name: 'Production'
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_32DCDB442CA643F39D4BC612A37C9122 }}
-          app-settings: |
-            SNOWFLAKE_ACCOUNT=${{ secrets.SNOWFLAKE_ACCOUNT }}
-            SNOWFLAKE_USER=${{ secrets.SNOWFLAKE_USER }}
-            SNOWFLAKE_PASSWORD=${{ secrets.SNOWFLAKE_PASSWORD }}
-            SNOWFLAKE_WAREHOUSE=${{ secrets.SNOWFLAKE_WAREHOUSE }}
-            SNOWFLAKE_DATABASE=${{ secrets.SNOWFLAKE_DATABASE }}
-            SNOWFLAKE_SCHEMA=${{ secrets.SNOWFLAKE_SCHEMA }}
+
+      - name: 'Set Environment Variables from GitHub Secrets'
+        uses: azure/CLI@v1
+        with:
+          azcliversion: '2.0.72'
+          inlineScript: |
+            # Login using publish profile
+            az webapp deployment source config-zip --name stormtest --src /dev/null --query "ResourceGroup" -o tsv || true
+            
+            # Get resource group from the app
+            RESOURCE_GROUP=$(az webapp show --name stormtest --query "resourceGroup" -o tsv)
+            
+            # Set environment variables
+            az webapp config appsettings set --name stormtest --resource-group $RESOURCE_GROUP --settings \
+              SNOWFLAKE_ACCOUNT="${{ secrets.SNOWFLAKE_ACCOUNT }}" \
+              SNOWFLAKE_USER="${{ secrets.SNOWFLAKE_USER }}" \
+              SNOWFLAKE_PASSWORD="${{ secrets.SNOWFLAKE_PASSWORD }}" \
+              SNOWFLAKE_WAREHOUSE="${{ secrets.SNOWFLAKE_WAREHOUSE }}" \
+              SNOWFLAKE_DATABASE="${{ secrets.SNOWFLAKE_DATABASE }}" \
+              SNOWFLAKE_SCHEMA="${{ secrets.SNOWFLAKE_SCHEMA }}"
